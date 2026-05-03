@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "GC": {
+      "title": "Group Chat",
+      "description": "A group chat the user pitches in.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "platform": { "type": "string" },
+        "joinedCount": { "type": "number" },
+        "pitchCount": { "type": "number" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["name", "platform", "joinedCount", "pitchCount", "createdAt", "updatedAt"]
+    },
+    "Bestie": {
+      "title": "Bestie Prospect",
+      "description": "A prospect tracked.",
+      "type": "object",
+      "properties": {
+        "realName": { "type": "string" },
+        "contactIdentity": { "type": "string" },
+        "status": { "type": "string" },
+        "rejectionReason": { "type": "string" },
+        "gcId": { "type": "string" },
+        "uniqueId": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["realName", "contactIdentity", "status", "uniqueId", "createdAt", "updatedAt"]
+    },
+    "UserStats": {
+      "title": "User Stats",
+      "description": "Stats like start date.",
+      "type": "object",
+      "properties": {
+        "startDate": { "type": "number" },
+        "backgroundImage": { "type": "string" },
+        "consentLink": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["startDate", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/gcs/{gcId}": {
+      "schema": "GC",
+      "description": "User's GCs"
+    },
+    "users/{userId}/besties/{bestieId}": {
+      "schema": "Bestie",
+      "description": "User's Besties"
+    },
+    "users/{userId}/stats/{statId}": {
+      "schema": "UserStats",
+      "description": "User Stats"
+    }
+  }
+}

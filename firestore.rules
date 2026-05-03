@@ -1,0 +1,108 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    match /users/{userId} {
+      match /gcs/{gcId} {
+        function isValidGC(data) {
+          return data.keys().hasAll(['name', 'platform', 'joinedCount', 'pitchCount', 'createdAt', 'updatedAt'])
+              && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+              && data.platform is string && data.platform.size() > 0 && data.platform.size() <= 20
+              && data.joinedCount is number
+              && data.pitchCount is number
+              && data.createdAt is number
+              && data.updatedAt is number
+              && (data.get('status', 'Active') is string);
+        }
+
+        allow read, list: if isSignedIn() && isOwner(userId);
+        
+        allow create: if isSignedIn() && isOwner(userId)
+                    && isValidId(gcId)
+                    && isValidGC(incoming());
+                    
+        allow update: if isSignedIn() && isOwner(userId)
+                    && isValidId(gcId)
+                    && isValidGC(incoming())
+                    && incoming().createdAt == existing().createdAt
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'platform', 'joinedCount', 'pitchCount', 'status', 'updatedAt']);
+                    
+        allow delete: if isSignedIn() && isOwner(userId) && isValidId(gcId);
+      }
+
+      match /besties/{bestieId} {
+        function isValidBestie(data) {
+          return data.keys().hasAll(['realName', 'contactIdentity', 'status', 'uniqueId', 'createdAt', 'updatedAt'])
+              && data.realName is string && data.realName.size() <= 100
+              && data.contactIdentity is string && data.contactIdentity.size() <= 100
+              && data.status is string && data.status.size() > 0 && data.status.size() <= 20
+              && data.uniqueId is string && data.uniqueId.size() <= 100
+              && data.createdAt is number
+              && data.updatedAt is number
+              && (data.get('rejectionReason', '') is string)
+              && (data.get('gcId', '') is string);
+        }
+
+        allow read, list: if isSignedIn() && isOwner(userId);
+
+        allow create: if isSignedIn() && isOwner(userId)
+                    && isValidId(bestieId)
+                    && isValidBestie(incoming());
+
+        allow update: if isSignedIn() && isOwner(userId)
+                    && isValidId(bestieId)
+                    && isValidBestie(incoming())
+                    && incoming().createdAt == existing().createdAt
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['realName', 'contactIdentity', 'status', 'rejectionReason', 'gcId', 'uniqueId', 'updatedAt']);
+                    
+        allow delete: if isSignedIn() && isOwner(userId) && isValidId(bestieId);
+      }
+      
+      match /stats/{statId} {
+        function isValidStats(data) {
+          return data.keys().hasAll(['startDate', 'createdAt', 'updatedAt'])
+              && data.startDate is number
+              && data.createdAt is number
+              && data.updatedAt is number
+              && (data.get('consentLink', '') is string)
+              && (data.get('backgroundImage', '') is string);
+        }
+
+        allow read, list: if isSignedIn() && isOwner(userId);
+
+        allow create: if isSignedIn() && isOwner(userId)
+                    && isValidId(statId)
+                    && isValidStats(incoming());
+
+        allow update: if isSignedIn() && isOwner(userId)
+                    && isValidId(statId)
+                    && isValidStats(incoming())
+                    && incoming().createdAt == existing().createdAt
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['startDate', 'consentLink', 'backgroundImage', 'updatedAt']);
+      }
+    }
+  }
+}
