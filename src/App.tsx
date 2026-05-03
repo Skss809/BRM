@@ -39,12 +39,25 @@ function Dashboard() {
     };
   }, [user]);
 
-  // Compute stats
-  const currentDay = stats?.startDate 
-    ? Math.floor((Date.now() - stats.startDate) / (1000 * 60 * 60 * 24)) + 1 
-    : 97;
+  // Compute stats based on calendar days, updating at midnight
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1000); // Check every second for the clock
+    return () => clearInterval(interval);
+  }, []);
+
+  const currentDay = React.useMemo(() => {
+    if (!stats?.startDate) return 97;
+    const start = new Date(stats.startDate);
+    start.setHours(0, 0, 0, 0);
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays + 1;
+  }, [stats?.startDate, now]);
 
   const totalGcs = gcs.length;
+  // ... rest of stats
   const totalPitches = gcs.reduce((acc, gc) => acc + gc.pitchCount, 0);
   const totalAgreed = besties.filter(b => b.status === 'Agreed').length;
   const totalRejected = besties.filter(b => b.status === 'Rejected').length;
@@ -75,12 +88,18 @@ function Dashboard() {
               <Swords className="text-white w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tighter uppercase italic text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+              <h1 className="text-2xl font-black tracking-tighter uppercase italic text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 flex items-center gap-2">
                 BRM System
               </h1>
-              <p className="text-xs text-[#ff5a00] font-mono tracking-widest font-bold">
-                DAY {currentDay} OF BESTIE SEARCH 💫
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-xs text-[#ff5a00] font-mono tracking-widest font-bold">
+                  DAY {currentDay} OF BESTIE SEARCH 💫
+                </p>
+                <div className="w-1 h-1 bg-gray-500 rounded-full" />
+                <p className="text-xs text-gray-400 font-mono tracking-wider flex items-center gap-1">
+                  CURRENT TIME: <span className="text-white font-bold">{now.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                </p>
+              </div>
             </div>
           </div>
           

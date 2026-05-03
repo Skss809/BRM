@@ -8,6 +8,8 @@ export function PitchesTab({ currentDay }: { currentDay: number }) {
   const [loading, setLoading] = useState(false);
   const [flavor, setFlavor] = useState('');
 
+  const currentDateString = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
   const defaultPitches = useMemo(() => [
     `Hemlo, It's introverted Pain 😶‍🌫️ still searching for bestie, day ${currentDay}💫`,
     `Mai ek introvert person hu 😶‍🌫️ Mera aaj day ${currentDay} hai bestie ki talash mein💫`
@@ -37,7 +39,12 @@ export function PitchesTab({ currentDay }: { currentDay: number }) {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h2 className="text-2xl font-black uppercase italic text-gray-200">Pitch Arsenal</h2>
+        <div>
+          <h2 className="text-2xl font-black uppercase italic text-gray-200">Pitch Arsenal</h2>
+          <p className="text-xs text-[#ff5a00] font-mono tracking-widest mt-1">
+            DAY {currentDay} • {currentDateString.toUpperCase()}
+          </p>
+        </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
           <input 
             type="text" 
