@@ -44,27 +44,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async () => {
     const provider = new GoogleAuthProvider();
-    
-    // Detect environment
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    // Force account selection to avoid state reuse issues
+    provider.setCustomParameters({ prompt: 'select_account' });
     
     try {
-      if (isStandalone || isMobile) {
-        // In APKs/PWAs, popups often fail or lose state. Try redirect but set persistence first.
-        await setPersistence(auth, browserLocalPersistence);
-        await signInWithRedirect(auth, provider);
-      } else {
-        // Desktop browser
-        await signInWithPopup(auth, provider);
-      }
-    } catch (error) {
+      // In many PWA/APK wrappers, Popup works better if initiated by a clean click.
+      // signInWithRedirect is the source of the "missing initial state" error because
+      // WebViews often clear sessionStorage during the redirect cycle.
+      await setPersistence(auth, browserLocalPersistence);
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
       console.error("Login attempt failed:", error);
-      // Fallback: If one fails, try the other as a last resort
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (innerError) {
-        alert("Authentication failed. Please check if cookies are enabled or try using a regular browser tab.");
+      
+      if (error.code === 'auth/popup-blocked') {
+        alert("Login popup was blocked. Please enable popups in your app settings or try opening the link in your Chrome browser.");
+      } else if (error.message?.includes('sessionStorage') || error.message?.includes('initial state')) {
+        // If we still hit state errors, it's a storage partitioning issue.
+        alert("Storage Error: Your app wrapper is blocking authentication. Please try opening this app directly in Chrome.");
+      } else {
+        alert("Authentication failed: " + (error.message || "Unknown error"));
       }
     }
   };
