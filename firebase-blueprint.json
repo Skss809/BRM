@@ -7,6 +7,7 @@
       "properties": {
         "name": { "type": "string" },
         "platform": { "type": "string" },
+        "telegramChatId": { "type": "string" },
         "joinedCount": { "type": "number" },
         "pitchCount": { "type": "number" },
         "createdAt": { "type": "number" },
@@ -38,6 +39,8 @@
         "startDate": { "type": "number" },
         "backgroundImage": { "type": "string" },
         "consentLink": { "type": "string" },
+        "isClockStopped": { "type": "boolean" },
+        "manualTimestamp": { "type": "number" },
         "createdAt": { "type": "number" },
         "updatedAt": { "type": "number" }
       },

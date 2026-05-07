@@ -7,6 +7,7 @@ import { extractGCNamesFromImage } from './ai';
 export function GCTab({ userId, gcs }: { userId: string, gcs: GCRecord[] }) {
   const [isAdding, setIsAdding] = useState(false);
   const [name, setName] = useState('');
+  const [telegramChatId, setTelegramChatId] = useState('');
   const [batchNames, setBatchNames] = useState<string[]>([]);
   const [platform, setPlatform] = useState<'Telegram'|'WhatsApp'|'Discord'>('Telegram');
   const [isExtracting, setIsExtracting] = useState(false);
@@ -22,14 +23,15 @@ export function GCTab({ userId, gcs }: { userId: string, gcs: GCRecord[] }) {
       if (batchNames.length > 0) {
         const validNames = batchNames.filter(n => n.trim() !== '');
         for (const bn of validNames) {
-          await addGC(userId, { name: bn.trim(), platform, status: 'Active' });
+          await addGC(userId, { name: bn.trim(), platform, status: 'Active', telegramChatId: '' });
         }
         setBatchNames([]);
         setIsAdding(false);
       } else {
         if (!name.trim()) return;
-        await addGC(userId, { name: name.trim(), platform, status: 'Active' });
+        await addGC(userId, { name: name.trim(), platform, status: 'Active', telegramChatId: telegramChatId.trim() });
         setName('');
+        setTelegramChatId('');
         setIsAdding(false);
       }
     } catch (err) {
@@ -174,6 +176,23 @@ export function GCTab({ userId, gcs }: { userId: string, gcs: GCRecord[] }) {
                 </select>
               </div>
             </div>
+
+            {platform === 'Telegram' && batchNames.length === 0 && (
+              <div className="mt-4">
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-1 flex items-center gap-2">
+                  <Settings className="w-3 h-3" /> Telegram Username / Link / ID
+                </label>
+                <input 
+                  type="text" 
+                  value={telegramChatId}
+                  onChange={e => setTelegramChatId(e.target.value)}
+                  className="w-full md:w-1/2 bg-black/50 border border-[#333] rounded p-2 text-white outline-none focus:border-[#ff5a00] transition font-mono text-xs" 
+                  placeholder="e.g. @channelname or t.me/link or -100..."
+                />
+                <p className="text-[10px] text-gray-600 mt-1 italic">Used for "Pitching" from your personal account.</p>
+              </div>
+            )}
+
             <button type="submit" className="bg-[#ff5a00] text-black font-bold uppercase tracking-widest px-6 py-2 rounded-tl-lg rounded-br-lg hover:bg-[#ff7a33] transition mt-4 w-full md:w-auto">
               {batchNames.length > 0 ? `Save ${batchNames.length} GCs` : 'Save GC'}
             </button>
@@ -214,6 +233,19 @@ export function GCTab({ userId, gcs }: { userId: string, gcs: GCRecord[] }) {
                       />
                     </div>
                   </div>
+
+                  {gc.platform === 'Telegram' && (
+                    <div>
+                      <label className="block text-[10px] uppercase text-gray-500 mb-1">Telegram Link / Username / ID</label>
+                      <input 
+                        type="text" 
+                        value={gc.telegramChatId || ''} 
+                        onChange={(e) => updateGC(userId, gc.id, { telegramChatId: e.target.value })}
+                        placeholder="@username or t.me/link"
+                        className="w-full bg-black/50 border border-[#333] p-1 text-sm rounded text-white font-mono" 
+                      />
+                    </div>
+                  )}
                   
                   {(!gc.status || gc.status === 'Active') && (
                     <div className="pt-2 border-t border-[#2a2a2a] space-y-2">

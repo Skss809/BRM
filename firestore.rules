@@ -31,13 +31,14 @@ service cloud.firestore {
           return data.keys().hasAll(['name', 'platform', 'joinedCount', 'pitchCount', 'createdAt', 'updatedAt'])
               && data.name is string && data.name.size() > 0 && data.name.size() <= 100
               && data.platform is string && data.platform.size() > 0 && data.platform.size() <= 20
+              && (data.get('telegramChatId', '') is string)
               && data.joinedCount is number
               && data.pitchCount is number
               && data.createdAt is number
               && data.updatedAt is number
               && (data.get('status', 'Active') is string);
         }
-
+ 
         allow read, list: if isSignedIn() && isOwner(userId);
         
         allow create: if isSignedIn() && isOwner(userId)
@@ -48,7 +49,7 @@ service cloud.firestore {
                     && isValidId(gcId)
                     && isValidGC(incoming())
                     && incoming().createdAt == existing().createdAt
-                    && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'platform', 'joinedCount', 'pitchCount', 'status', 'updatedAt']);
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'platform', 'telegramChatId', 'joinedCount', 'pitchCount', 'status', 'updatedAt']);
                     
         allow delete: if isSignedIn() && isOwner(userId) && isValidId(gcId);
       }
@@ -88,7 +89,9 @@ service cloud.firestore {
               && data.createdAt is number
               && data.updatedAt is number
               && (data.get('consentLink', '') is string)
-              && (data.get('backgroundImage', '') is string);
+              && (data.get('backgroundImage', '') is string)
+              && (data.get('isClockStopped', false) is bool)
+              && (data.get('manualTimestamp', 0) is number);
         }
 
         allow read, list: if isSignedIn() && isOwner(userId);
@@ -101,7 +104,7 @@ service cloud.firestore {
                     && isValidId(statId)
                     && isValidStats(incoming())
                     && incoming().createdAt == existing().createdAt
-                    && incoming().diff(existing()).affectedKeys().hasOnly(['startDate', 'consentLink', 'backgroundImage', 'updatedAt']);
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['startDate', 'consentLink', 'backgroundImage', 'isClockStopped', 'manualTimestamp', 'updatedAt']);
       }
     }
   }

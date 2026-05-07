@@ -5,6 +5,7 @@ export interface GCRecord {
   id: string;
   name: string;
   platform: 'Telegram' | 'WhatsApp' | 'Discord';
+  telegramChatId?: string;
   joinedCount: number;
   pitchCount: number;
   status?: 'Active' | 'Left' | 'Banned';
@@ -26,8 +27,10 @@ export interface BestieRecord {
 
 export interface UserStats {
   startDate: number;
-  consentLink?: string;
   backgroundImage?: string;
+  isClockStopped?: boolean;
+  manualTimestamp?: number;
+  consentLink?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -140,3 +143,5 @@ export async function updateStats(userId: string, data: Partial<UserStats>) {
         handleFirestoreError(err, OperationType.UPDATE, `users/${userId}/stats/main`);
     }
 }
+
+

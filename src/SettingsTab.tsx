@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserStats, updateStats } from './data';
-import { Settings, Save, Check, Image as ImageIcon, Trash2, Loader2, Link } from 'lucide-react';
+import { UserStats, updateStats, initStats } from './data';
+import { Settings, Save, Check, Image as ImageIcon, Trash2, Loader2, Link, Clock, PauseCircle, PlayCircle, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export function SettingsTab({ userId, stats }: { userId: string, stats: UserStats | null }) {
   const [consentLink, setConsentLink] = useState('');
   const [backgroundImage, setBackgroundImage] = useState('');
+  const [isClockStopped, setIsClockStopped] = useState(false);
+  const [manualTimeString, setManualTimeString] = useState('');
+  
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -15,13 +18,32 @@ export function SettingsTab({ userId, stats }: { userId: string, stats: UserStat
   useEffect(() => {
     if (stats?.consentLink) setConsentLink(stats.consentLink);
     if (stats?.backgroundImage) setBackgroundImage(stats.backgroundImage);
+    
+    setIsClockStopped(stats?.isClockStopped || false);
+    if (stats?.manualTimestamp) {
+      const d = new Date(stats.manualTimestamp);
+      const offset = d.getTimezoneOffset() * 60000;
+      const localDate = new Date(d.getTime() - offset);
+      setManualTimeString(localDate.toISOString().slice(0, 16));
+    } else {
+      const d = new Date();
+      const offset = d.getTimezoneOffset() * 60000;
+      const localDate = new Date(d.getTime() - offset);
+      setManualTimeString(localDate.toISOString().slice(0, 16));
+    }
   }, [stats]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      await updateStats(userId, { consentLink, backgroundImage });
+      const manualTimestamp = new Date(manualTimeString).getTime();
+      await updateStats(userId, { 
+        consentLink, 
+        backgroundImage,
+        isClockStopped,
+        manualTimestamp: isNaN(manualTimestamp) ? Date.now() : manualTimestamp
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -29,6 +51,22 @@ export function SettingsTab({ userId, stats }: { userId: string, stats: UserStat
       alert('Failed to save settings.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleResetClock = async () => {
+    if (confirm('Are you sure you want to reset the Day counter to 1? This will restart your time.')) {
+      setIsSaving(true);
+      try {
+        await updateStats(userId, { startDate: Date.now(), isClockStopped: false });
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      } catch (err) {
+        console.error(err);
+        alert('Failed to reset clock.');
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -149,6 +187,58 @@ export function SettingsTab({ userId, stats }: { userId: string, stats: UserStat
                   />
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div className="space-y-4 border-t border-[#2a2a2a] pt-6">
+            <h3 className="text-lg font-bold text-white uppercase italic flex items-center justify-between">
+              <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-[#ff5a00]" /> Time Physics</span>
+              <button 
+                type="button"
+                onClick={handleResetClock}
+                className="text-xs font-bold uppercase flex items-center gap-1 text-red-500 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded transition"
+              >
+                <RefreshCw className="w-3 h-3" /> Reset Engine (Day 1)
+              </button>
+            </h3>
+            
+            <div className="bg-[#111] border border-[#222] p-4 rounded-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-bold text-white mb-1">Time Status</h4>
+                  <p className="text-xs text-gray-500">Stop time to freeze the day count and current time.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsClockStopped(!isClockStopped)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold uppercase text-xs transition ${
+                    isClockStopped 
+                      ? 'bg-red-500/20 text-red-500 border border-red-500/50' 
+                      : 'bg-green-500/20 text-green-500 border border-green-500/50'
+                  }`}
+                >
+                  {isClockStopped ? (
+                    <><PauseCircle className="w-4 h-4" /> Clock Stopped</>
+                  ) : (
+                    <><PlayCircle className="w-4 h-4" /> Clock Running</>
+                  )}
+                </button>
+              </div>
+
+              {isClockStopped && (
+                <div className="pt-4 border-t border-[#222]">
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">
+                    Manual Override Time
+                  </label>
+                  <input 
+                    type="datetime-local" 
+                    value={manualTimeString}
+                    onChange={e => setManualTimeString(e.target.value)}
+                    className="w-full bg-black/50 border border-[#333] rounded-tl-lg rounded-br-lg p-3 text-white outline-none focus:border-[#ff5a00] transition font-mono text-sm" 
+                  />
+                  <p className="text-[10px] text-gray-600 mt-2 italic">Set the exact time you want the system to be anchored in while stopped.</p>
+                </div>
+              )}
             </div>
           </div>
 

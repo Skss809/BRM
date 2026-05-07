@@ -42,9 +42,16 @@ function Dashboard() {
   // Compute stats based on calendar days, updating at midnight
   const [now, setNow] = useState(new Date());
   useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 1000); // Check every second for the clock
-    return () => clearInterval(interval);
-  }, []);
+    if (stats?.isClockStopped) {
+      if (stats.manualTimestamp) {
+        setNow(new Date(stats.manualTimestamp));
+      }
+    } else {
+      setNow(new Date());
+      const interval = setInterval(() => setNow(new Date()), 1000); // Check every second for the clock
+      return () => clearInterval(interval);
+    }
+  }, [stats?.isClockStopped, stats?.manualTimestamp]);
 
   const currentDay = React.useMemo(() => {
     if (!stats?.startDate) return 97;
@@ -211,7 +218,7 @@ function Dashboard() {
 
           {activeTab === 'pitches' && (
             <motion.div key="pitches" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <PitchesTab currentDay={currentDay} />
+              <PitchesTab currentDay={currentDay} now={now} gcs={gcs} stats={stats} userId={user.uid} />
             </motion.div>
           )}
 
