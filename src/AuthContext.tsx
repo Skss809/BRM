@@ -5,7 +5,8 @@ import { auth } from './firebase';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: () => Promise<void>;
+  loginWithPopup: () => Promise<void>;
+  loginWithRedirect: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -16,6 +17,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    import('firebase/auth').then(({ getRedirectResult }) => {
+      getRedirectResult(auth).catch(console.error);
+    });
+
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
       setLoading(false);
@@ -23,27 +28,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return unsubscribe;
   }, []);
 
-  const login = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      
-      // We must use signInWithPopup. 
-      // 1. signInWithRedirect fails in WebViews/APKs due to storage partitioning (missing initial state).
-      // 2. Redirecting to Chrome via intent:// breaks because Chrome and the APK don't share storage.
-      await signInWithPopup(auth, provider);
-    } catch (error: any) {
-      console.error(error);
-      if (error.code !== 'auth/popup-closed-by-user') {
-        alert(
-          `Login Failed: ${error.message}\n\n` +
-          `If this popup is blocked by your APK wrapper, we highly recommend generating your APK using PWABuilder.com. ` +
-          `It uses Trusted Web Activities (TWA) which properly support Google Login.`
-        );
-      }
-    }
+  const loginWithPopup = async () => {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  };
+
+  const loginWithRedirect = async () => {
+    const provider = new GoogleAuthProvider();
+    const { signInWithRedirect } = await import('firebase/auth');
+    await signInWithRedirect(auth, provider);
   };
 
   const logout = async () => {
@@ -51,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, loginWithPopup, loginWithRedirect, logout }}>
       {children}
     </AuthContext.Provider>
   );
