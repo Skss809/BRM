@@ -24,9 +24,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async () => {
+    // Detect if we are in an Android WebView wrapper
+    const isAndroidWebView = /wv|Android.*Version\/[\d.]+.*Chrome/i.test(navigator.userAgent);
+    
+    if (isAndroidWebView) {
+      // Force Android to show the "Select Browser" dialog to escape the WebView wrapper
+      const host = window.location.host;
+      const path = window.location.pathname;
+      const search = window.location.search;
+      const intentUrl = `intent://${host}${path}${search}#Intent;scheme=https;action=android.intent.action.VIEW;end;`;
+      window.location.href = intentUrl;
+      return;
+    }
+
+    // Detect iOS WebView
+    const isIosWebView = /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(navigator.userAgent);
+    if (isIosWebView) {
+      window.open(window.location.href, '_blank');
+      return;
+    }
+
     const provider = new GoogleAuthProvider();
-    // Using signInWithPopup exclusively because signInWithRedirect relies on sessionStorage 
-    // which gets partitioned/cleared in PWA APK wrappers (TWAs / WebViews).
     await signInWithPopup(auth, provider);
   };
 
