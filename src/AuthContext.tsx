@@ -24,28 +24,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async () => {
-    // Detect if we are in an Android WebView wrapper
-    const isAndroidWebView = /wv|Android.*Version\/[\d.]+.*Chrome/i.test(navigator.userAgent);
-    
-    if (isAndroidWebView) {
-      // Force Android to show the "Select Browser" dialog to escape the WebView wrapper
-      const host = window.location.host;
-      const path = window.location.pathname;
-      const search = window.location.search;
-      const intentUrl = `intent://${host}${path}${search}#Intent;scheme=https;action=android.intent.action.VIEW;end;`;
-      window.location.href = intentUrl;
-      return;
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      
+      // We must use signInWithPopup. 
+      // 1. signInWithRedirect fails in WebViews/APKs due to storage partitioning (missing initial state).
+      // 2. Redirecting to Chrome via intent:// breaks because Chrome and the APK don't share storage.
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      console.error(error);
+      if (error.code !== 'auth/popup-closed-by-user') {
+        alert(
+          `Login Failed: ${error.message}\n\n` +
+          `If this popup is blocked by your APK wrapper, we highly recommend generating your APK using PWABuilder.com. ` +
+          `It uses Trusted Web Activities (TWA) which properly support Google Login.`
+        );
+      }
     }
-
-    // Detect iOS WebView
-    const isIosWebView = /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(navigator.userAgent);
-    if (isIosWebView) {
-      window.open(window.location.href, '_blank');
-      return;
-    }
-
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
   };
 
   const logout = async () => {

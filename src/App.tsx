@@ -305,7 +305,7 @@ function AppContent() {
         <div className="absolute w-[800px] h-[800px] bg-[#ff5a00] opacity-10 rounded-full blur-[120px] -top-96 -left-96 pointer-events-none" />
         <div className="z-10 text-center space-y-8">
           <div className="bg-[#1a1a1a] p-12 border border-[#333] rounded-tl-[40px] rounded-br-[40px] rounded-tr-xl rounded-bl-xl shadow-2xl relative">
-            <h1 className="text-5xl font-black text-white uppercase italic tracking-tighter mb-4">BRM System</h1>
+            <h1 className="text-5xl font-black text-white uppercase italic tracking-tighter mb-4">BRM System <span className="text-xl font-normal text-gray-500">v2.1</span></h1>
             <p className="text-gray-400 max-w-sm mb-8">Manage your online bestie search mission with precision.</p>
             <button
               onClick={login}
