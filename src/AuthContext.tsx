@@ -1,12 +1,20 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { 
+  User, 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  signOut, 
+  setPersistence, 
+  browserLocalPersistence,
+  getRedirectResult,
+  signInWithRedirect
+} from 'firebase/auth';
 import { auth } from './firebase';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  loginWithPopup: () => Promise<void>;
-  loginWithRedirect: () => Promise<void>;
+  login: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -17,26 +25,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    import('firebase/auth').then(({ getRedirectResult }) => {
-      getRedirectResult(auth).catch(console.error);
+    // 1. Set persistence to LOCAL immediately to handle partitioned storage better
+    setPersistence(auth, browserLocalPersistence).catch(console.error);
+
+    // 2. Check if we just came back from a redirect (common in mobile WebViews)
+    getRedirectResult(auth).catch((error) => {
+      console.error("Redirect error catch:", error);
+      // Usually "missing initial state" happens here in partitioned environments
     });
 
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
       setLoading(false);
     });
+
     return unsubscribe;
   }, []);
 
-  const loginWithPopup = async () => {
+  const login = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-  };
-
-  const loginWithRedirect = async () => {
-    const provider = new GoogleAuthProvider();
-    const { signInWithRedirect } = await import('firebase/auth');
-    await signInWithRedirect(auth, provider);
+    
+    // Detect environment
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    try {
+      if (isStandalone || isMobile) {
+        // In APKs/PWAs, popups often fail or lose state. Try redirect but set persistence first.
+        await setPersistence(auth, browserLocalPersistence);
+        await signInWithRedirect(auth, provider);
+      } else {
+        // Desktop browser
+        await signInWithPopup(auth, provider);
+      }
+    } catch (error) {
+      console.error("Login attempt failed:", error);
+      // Fallback: If one fails, try the other as a last resort
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (innerError) {
+        alert("Authentication failed. Please check if cookies are enabled or try using a regular browser tab.");
+      }
+    }
   };
 
   const logout = async () => {
@@ -44,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginWithPopup, loginWithRedirect, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

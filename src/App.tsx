@@ -289,8 +289,7 @@ export default function App() {
 }
 
 function AppContent() {
-  const { user, loading, loginWithPopup, loginWithRedirect } = useAuth();
-  const [showOptions, setShowOptions] = useState(false);
+  const { user, loading, login } = useAuth();
 
   if (loading) {
     return (
@@ -302,50 +301,19 @@ function AppContent() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center relative overflow-hidden px-4">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center relative overflow-hidden">
         <div className="absolute w-[800px] h-[800px] bg-[#ff5a00] opacity-10 rounded-full blur-[120px] -top-96 -left-96 pointer-events-none" />
-        <div className="z-10 w-full max-w-sm mx-auto text-center space-y-8">
-          <div className="bg-[#1a1a1a]/80 backdrop-blur-md p-8 md:p-12 border border-[#333] rounded-tl-[40px] rounded-br-[40px] rounded-tr-xl rounded-bl-xl shadow-2xl relative">
-            <h1 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter mb-4">BRM System</h1>
-            <p className="text-gray-400 max-w-sm mx-auto text-sm md:text-base mb-8">Manage your online bestie search mission with precision.</p>
-            
-            {!showOptions ? (
-              <button
-                onClick={() => setShowOptions(true)}
-                className="bg-[#ff5a00] hover:bg-[#ff7020] text-black w-full py-4 px-8 font-black uppercase text-lg tracking-widest transition-transform hover:scale-105 active:scale-95 rounded-tl-xl rounded-br-xl rounded-tr-md rounded-bl-md flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,90,0,0.4)]"
-              >
-                <LogIn className="w-5 h-5" />
-                Enter System
-              </button>
-            ) : (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-2">Select Login Method</p>
-                <button
-                  onClick={loginWithPopup}
-                  className="bg-[#222] hover:bg-[#333] border border-[#ff5a00]/30 hover:border-[#ff5a00] text-white w-full py-3 px-6 font-bold text-sm transition-all rounded-tl-lg rounded-br-lg rounded-tr-sm rounded-bl-sm flex flex-col items-center justify-center gap-1 group"
-                >
-                  <span className="flex items-center gap-2 text-[#ff5a00] group-hover:text-white transition-colors">
-                    <LogIn className="w-4 h-4" /> Browser Login (Popup)
-                  </span>
-                  <span className="text-[10px] text-gray-500 font-normal normal-case">Best for Chrome, Safari, Web Desktop</span>
-                </button>
-                <button
-                  onClick={loginWithRedirect}
-                  className="bg-[#222] hover:bg-[#333] border border-[#ff5a00]/30 hover:border-[#ff5a00] text-white w-full py-3 px-6 font-bold text-sm transition-all rounded-tl-lg rounded-br-lg rounded-tr-sm rounded-bl-sm flex flex-col items-center justify-center gap-1 group"
-                >
-                  <span className="flex items-center gap-2 text-[#ff5a00] group-hover:text-white transition-colors">
-                    <LogIn className="w-4 h-4" /> App Login (Redirect)
-                  </span>
-                  <span className="text-[10px] text-gray-500 font-normal normal-case">Best for APK, TWA, Installed PWA</span>
-                </button>
-                <button 
-                  onClick={() => setShowOptions(false)}
-                  className="text-xs text-gray-500 hover:text-gray-300 transition-colors mt-4 block mx-auto underline decoration-dotted underline-offset-4"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
+        <div className="z-10 text-center space-y-8">
+          <div className="bg-[#1a1a1a] p-12 border border-[#333] rounded-tl-[40px] rounded-br-[40px] rounded-tr-xl rounded-bl-xl shadow-2xl relative">
+            <h1 className="text-5xl font-black text-white uppercase italic tracking-tighter mb-4">BRM System</h1>
+            <p className="text-gray-400 max-w-sm mb-8">Manage your online bestie search mission with precision.</p>
+            <button
+              onClick={login}
+              className="bg-[#ff5a00] hover:bg-[#ff7020] text-black w-full py-4 px-8 font-black uppercase text-lg tracking-widest transition-transform hover:scale-105 active:scale-95 rounded-tl-xl rounded-br-xl rounded-tr-md rounded-bl-md flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,90,0,0.4)]"
+            >
+              <LogIn className="w-5 h-5" />
+              Enter System
+            </button>
           </div>
         </div>
       </div>
