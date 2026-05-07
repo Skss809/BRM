@@ -20,7 +20,19 @@ export default defineConfig(({mode}) => {
           background_color: '#0d0d0d',
           display: 'standalone',
           orientation: 'portrait',
-        }
+          start_url: '/',
+          scope: '/',
+        },
+        workbox: {
+          // Prevent service worker from intercepting Firebase Auth redirects
+          navigateFallbackDenylist: [/^\/__\/auth/],
+          runtimeCaching: [
+            {
+              urlPattern: /^\/__\/auth/,
+              handler: 'NetworkOnly',
+            },
+          ],
+        },
       })
     ],
     define: {

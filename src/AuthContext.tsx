@@ -44,25 +44,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async () => {
     const provider = new GoogleAuthProvider();
-    // Force account selection to avoid state reuse issues
     provider.setCustomParameters({ prompt: 'select_account' });
     
+    // Detect environment
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
     try {
-      // In many PWA/APK wrappers, Popup works better if initiated by a clean click.
-      // signInWithRedirect is the source of the "missing initial state" error because
-      // WebViews often clear sessionStorage during the redirect cycle.
       await setPersistence(auth, browserLocalPersistence);
-      await signInWithPopup(auth, provider);
+      
+      if (isStandalone || isMobile) {
+        // In mobile/standalone, we try redirect as it's more stable if configured correctly,
+        // but it's where the state issue occurs. 
+        // We'll catch errors and alert the user with tips.
+        await signInWithRedirect(auth, provider);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
     } catch (error: any) {
       console.error("Login attempt failed:", error);
       
-      if (error.code === 'auth/popup-blocked') {
-        alert("Login popup was blocked. Please enable popups in your app settings or try opening the link in your Chrome browser.");
-      } else if (error.message?.includes('sessionStorage') || error.message?.includes('initial state')) {
-        // If we still hit state errors, it's a storage partitioning issue.
-        alert("Storage Error: Your app wrapper is blocking authentication. Please try opening this app directly in Chrome.");
+      if (error.message?.includes('missing initial state') || error.code === 'auth/web-storage-unsupported') {
+        alert("Authentication Error: Your browser/app is blocking local storage or clearing session state. Please try opening this app in your Chrome browser directly.");
+      } else if (error.code === 'auth/popup-blocked') {
+        alert("Popup blocked! Please allow popups or try the 'Chrome' browser.");
+        // Fallback to redirect
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (reErr) {
+          console.error("Followup redirect failed", reErr);
+        }
       } else {
-        alert("Authentication failed: " + (error.message || "Unknown error"));
+        alert("Login error: " + (error.message || "Unknown error"));
       }
     }
   };
