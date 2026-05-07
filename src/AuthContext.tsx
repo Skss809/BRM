@@ -16,6 +16,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    import('firebase/auth').then(({ getRedirectResult }) => {
+      getRedirectResult(auth).catch(console.error);
+    });
+
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
       setLoading(false);
@@ -25,7 +29,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    // In standalone PWA or mobile, prefer redirect to avoid popup/custom-tab storage partition errors
+    const isIframe = window !== window.parent;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (!isIframe && (isStandalone || isMobile)) {
+      import('firebase/auth').then(({ signInWithRedirect }) => {
+        signInWithRedirect(auth, provider).catch(console.error);
+      });
+    } else {
+      await signInWithPopup(auth, provider);
+    }
   };
 
   const logout = async () => {
