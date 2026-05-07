@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth, AuthProvider } from './AuthContext';
 import { GCRecord, BestieRecord, UserStats, subscribeToGCs, subscribeToBesties, subscribeToStats, addGC, updateGC, addBestie, updateBestie, initStats } from './data';
 import { generatePitch } from './ai';
-import { LogIn, Plus, Swords, UserPlus, FileText, Send, UserX, UserCheck, Flame, Loader2, Sparkles, MessageSquare } from 'lucide-react';
+import { LogIn, Plus, Swords, UserPlus, FileText, Send, UserX, UserCheck, Flame, Loader2, Sparkles, MessageSquare, Activity, Users, Settings, LogOut } from 'lucide-react';
 import { cn } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { PitchesTab } from './PitchesTab';
@@ -79,7 +79,7 @@ function Dashboard() {
 
   return (
     <div 
-      className="min-h-screen bg-[#0d0d0d] text-white"
+      className="min-h-[100dvh] bg-[#0d0d0d] text-white flex flex-col pb-20 md:pb-0"
       style={stats?.backgroundImage ? { 
         backgroundImage: `linear-gradient(to bottom, rgba(13,13,13,0.85), rgba(13,13,13,0.95)), url(${stats.backgroundImage})`,
         backgroundSize: 'cover',
@@ -89,35 +89,35 @@ function Dashboard() {
     >
       {/* Header */}
       <header className="border-b border-[#333] bg-[#1a1a1a]/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#ff5a00] to-[#ff9900] rounded-tl-xl rounded-br-xl rounded-tr-sm rounded-bl-sm flex items-center justify-center shadow-[0_0_15px_rgba(255,90,0,0.4)]">
-              <Swords className="text-white w-6 h-6" />
+        <div className="max-w-7xl mx-auto px-4 h-16 md:h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-[#ff5a00] to-[#ff9900] rounded-tl-xl rounded-br-xl rounded-tr-sm rounded-bl-sm flex items-center justify-center shadow-[0_0_15px_rgba(255,90,0,0.4)] shrinks-0">
+              <Swords className="text-white w-5 h-5 md:w-6 md:h-6" />
             </div>
-            <div>
-              <h1 className="text-2xl font-black tracking-tighter uppercase italic text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 flex items-center gap-2">
+            <div className="flex flex-col">
+              <h1 className="text-lg md:text-2xl font-black tracking-tighter uppercase italic text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 flex items-center gap-2 leading-none">
                 BRM System
               </h1>
-              <div className="flex items-center gap-3">
-                <p className="text-xs text-[#ff5a00] font-mono tracking-widest font-bold">
-                  DAY {currentDay} OF BESTIE SEARCH 💫
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-[10px] md:text-xs text-[#ff5a00] font-mono tracking-widest font-bold">
+                  DAY {currentDay} 💫
                 </p>
-                <div className="w-1 h-1 bg-gray-500 rounded-full" />
-                <p className="text-xs text-gray-400 font-mono tracking-wider flex items-center gap-1">
-                  CURRENT TIME: <span className="text-white font-bold">{now.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                <div className="w-1 h-1 bg-gray-500 rounded-full hidden md:block" />
+                <p className="text-xs text-gray-400 font-mono tracking-wider hidden md:flex items-center gap-1">
+                  SYS TIME: <span className="text-white font-bold">{now.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                 </p>
               </div>
             </div>
           </div>
           
           <div className="flex items-center gap-6">
-            <nav className="flex items-center gap-2 bg-black/40 p-1 rounded-tl-xl rounded-br-xl rounded-tr-sm rounded-bl-sm border border-[#333]">
+            <nav className="hidden md:flex items-center gap-2 bg-black/40 p-1 rounded-tl-xl rounded-br-xl rounded-tr-sm rounded-bl-sm border border-[#333]">
               {(['overview', 'gcs', 'besties', 'pitches', 'settings'] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    "px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all rounded-tl-lg rounded-br-lg rounded-tr-sm rounded-bl-sm",
+                    "px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all rounded-tl-lg rounded-br-lg rounded-tr-sm rounded-bl-sm flex items-center gap-2",
                     activeTab === tab 
                       ? "bg-[#ff5a00] text-black shadow-[0_0_10px_rgba(255,90,0,0.3)]" 
                       : "text-gray-400 hover:text-white hover:bg-white/5"
@@ -130,7 +130,13 @@ function Dashboard() {
             
             <button 
               onClick={logout}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-gray-400 hover:text-white transition-colors block md:hidden"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={logout}
+              className="text-gray-400 hover:text-white transition-colors hidden md:block"
             >
               Sign out
             </button>
@@ -138,7 +144,7 @@ function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6 md:py-8 overflow-y-auto">
         <AnimatePresence mode="wait">
           {activeTab === 'overview' && (
             <motion.div
@@ -229,6 +235,31 @@ function Dashboard() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#1a1a1a]/95 backdrop-blur-md border-t border-[#333] z-50 px-2 py-2 pb-safe flex justify-around">
+        {[
+          { id: 'overview', icon: Activity, label: 'Stats' },
+          { id: 'gcs', icon: MessageSquare, label: 'GCs' },
+          { id: 'pitches', icon: Send, label: 'Pitch' },
+          { id: 'besties', icon: Users, label: 'Besties' },
+          { id: 'settings', icon: Settings, label: 'Settings' }
+        ].map(item => (
+          <button
+            key={item.id}
+            onClick={() => setActiveTab(item.id as any)}
+            className={cn(
+              "flex flex-col items-center justify-center p-2 min-w-[64px] rounded-lg transition-colors",
+              activeTab === item.id 
+                ? "text-[#ff5a00]" 
+                : "text-gray-500 hover:text-gray-300"
+            )}
+          >
+            <item.icon className={cn("w-6 h-6", activeTab === item.id ? "animate-pulse" : "")} />
+            <span className="text-[10px] uppercase font-bold mt-1 max-w-full truncate">{item.label}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

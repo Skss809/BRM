@@ -1,25 +1,34 @@
 @import "tailwindcss";
 
+@theme {
+  --spacing-safe: env(safe-area-inset-bottom);
+}
+
 body {
   background-color: #0d0d0d;
   color: #ededed;
   font-family: 'Inter', system-ui, sans-serif;
   overflow-x: hidden;
+  /* Prevent pull-to-refresh on mobile */
+  overscroll-behavior-y: none;
+  /* Prevent text selection */
+  -webkit-user-select: none;
+  user-select: none;
+  /* Disable tap highlight on mobile */
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Scrollbar styles to match the theme */
+/* Allow text selection in inputs and textareas */
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Hide scrollbars for mobile app feel */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  display: none;
 }
-::-webkit-scrollbar-track {
-  background: #1a1a1a;
-}
-::-webkit-scrollbar-thumb {
-  background: #ff5a00;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #ff7a33;
+* {
+  scrollbar-width: none;
 }
 
