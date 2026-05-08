@@ -7,7 +7,10 @@ import {
   setPersistence, 
   browserLocalPersistence,
   getRedirectResult,
-  signInWithRedirect
+  signInWithRedirect,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth } from './firebase';
 
@@ -15,6 +18,9 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: () => Promise<void>;
+  emailLogin: (email: string, pass: string) => Promise<void>;
+  emailSignUp: (email: string, pass: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -64,15 +70,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await setPersistence(auth, browserLocalPersistence);
       
-      // In PWA APKs (TWAs), popups are actually often more reliable than redirects 
-      // if the WebView is configured to handle them, because redirects lose sessionStorage.
-      // But many users have popups blocked. 
-      // We will try Popup first for mobile, and fallback to redirect only if blocked.
       if (isStandalone || isMobile) {
         try {
+          // Attempt popup first as it shares storage better if the wrapper allows it
           await signInWithPopup(auth, provider);
         } catch (popupError: any) {
-          if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/cancelled-by-user') {
+          console.warn("Popup blocked or failed, falling back to redirect:", popupError);
+          // If popup is blocked, cancelled, or not supported, use redirect
+          const codes = ['auth/popup-blocked', 'auth/cancelled-by-user', 'auth/operation-not-supported-in-this-environment'];
+          if (codes.includes(popupError.code)) {
             await signInWithRedirect(auth, provider);
           } else {
             throw popupError;
@@ -84,11 +90,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       console.error("Login process failed:", error);
       
-      if (error.message?.includes('missing initial state') || error.code === 'auth/web-storage-unsupported') {
-        alert("Authentication Error: Your app is blocking local state. Please open this app in Chrome to log in once, then return here.");
+      const isStateError = error.message?.includes('initial state') || error.code === 'auth/internal-error';
+      if (isStateError || error.code === 'auth/web-storage-unsupported') {
+        alert("Domain/Storage Error: Your app is blocking auth state. Please ensure 'brm-one.vercel.app' is added to Authorized Domains in Firebase Console.");
       } else {
         alert("Login failed: " + (error.message || "Unknown error"));
       }
+    }
+  };
+
+  const emailLogin = async (email: string, pass: string) => {
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (error: any) {
+      console.error("Email login failed:", error);
+      throw error;
+    }
+  };
+
+  const emailSignUp = async (email: string, pass: string) => {
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+      await createUserWithEmailAndPassword(auth, email, pass);
+    } catch (error: any) {
+      console.error("Email sign up failed:", error);
+      throw error;
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error: any) {
+      console.error("Password reset failed:", error);
+      throw error;
     }
   };
 
@@ -97,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, emailLogin, emailSignUp, resetPassword, logout }}>
       {children}
     </AuthContext.Provider>
   );

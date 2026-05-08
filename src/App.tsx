@@ -289,7 +289,14 @@ export default function App() {
 }
 
 function AppContent() {
-  const { user, loading, login } = useAuth();
+  const { user, loading, login, emailLogin, emailSignUp, resetPassword } = useAuth();
+  const [isEmailMode, setIsEmailMode] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
 
   if (loading) {
     return (
@@ -299,21 +306,151 @@ function AppContent() {
     );
   }
 
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setAuthLoading(true);
+    try {
+      if (isSignUp) {
+        await emailSignUp(email, password);
+      } else {
+        await emailLogin(email, password);
+      }
+    } catch (err: any) {
+      if (err.code === 'auth/operation-not-allowed') {
+        setError("Email/Password login is not enabled in your Firebase Console. Go to Authentication > Sign-in method to enable it.");
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError("This identity is already registered. Please Switch to 'System Enter' mode below.");
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        setError("Invalid credentials. If you haven't registered yet, use 'Request Access' mode.");
+      } else if (err.code === 'auth/weak-password') {
+        setError("Security alert: Password must be at least 6 characters.");
+      } else {
+        setError(err.message || "Authentication failed");
+      }
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError("Please enter your email address first.");
+      return;
+    }
+    setError('');
+    setSuccess('');
+    setAuthLoading(true);
+    try {
+      await resetPassword(email);
+      setSuccess("Reset link dispatched to your secure terminal (email). Check your inbox.");
+    } catch (err: any) {
+      setError(err.message || "Reset request failed");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center relative overflow-hidden">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center relative overflow-hidden px-4">
         <div className="absolute w-[800px] h-[800px] bg-[#ff5a00] opacity-10 rounded-full blur-[120px] -top-96 -left-96 pointer-events-none" />
-        <div className="z-10 text-center space-y-8">
-          <div className="bg-[#1a1a1a] p-12 border border-[#333] rounded-tl-[40px] rounded-br-[40px] rounded-tr-xl rounded-bl-xl shadow-2xl relative">
-            <h1 className="text-5xl font-black text-white uppercase italic tracking-tighter mb-4">BRM System</h1>
-            <p className="text-gray-400 max-w-sm mb-8">Manage your online bestie search mission with precision.</p>
-            <button
-              onClick={login}
-              className="bg-[#ff5a00] hover:bg-[#ff7020] text-black w-full py-4 px-8 font-black uppercase text-lg tracking-widest transition-transform hover:scale-105 active:scale-95 rounded-tl-xl rounded-br-xl rounded-tr-md rounded-bl-md flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,90,0,0.4)]"
-            >
-              <LogIn className="w-5 h-5" />
-              Enter System
-            </button>
+        <div className="z-10 text-center space-y-8 w-full max-w-sm">
+          <div className="bg-[#1a1a1a] p-8 md:p-12 border border-[#333] rounded-tl-[40px] rounded-br-[40px] rounded-tr-xl rounded-bl-xl shadow-2xl relative">
+            <h1 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter mb-4">BRM System</h1>
+            <p className="text-gray-400 max-w-sm mb-8 mx-auto text-sm md:text-base">Manage your online bestie search mission with precision.</p>
+            
+            {isEmailMode ? (
+              <form onSubmit={handleEmailAuth} className="space-y-4">
+                <input
+                  type="email"
+                  placeholder="Email Address"
+                  className="w-full bg-[#0d0d0d] border border-[#333] p-3 rounded-lg text-white focus:border-[#ff5a00] outline-none transition-colors"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                {!isSignUp && (
+                  <div className="relative">
+                    <input
+                      type="password"
+                      placeholder="Password"
+                      className="w-full bg-[#0d0d0d] border border-[#333] p-3 rounded-lg text-white focus:border-[#ff5a00] outline-none transition-colors"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={handleResetPassword}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 hover:text-[#ff5a00] font-bold uppercase"
+                    >
+                      Forgot?
+                    </button>
+                  </div>
+                )}
+                {isSignUp && (
+                  <input
+                    type="password"
+                    placeholder="Set Password"
+                    className="w-full bg-[#0d0d0d] border border-[#333] p-3 rounded-lg text-white focus:border-[#ff5a00] outline-none transition-colors"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                )}
+                {error && <p className="text-red-500 text-xs font-bold text-left">{error}</p>}
+                {success && <p className="text-green-500 text-xs font-bold text-left">{success}</p>}
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="bg-[#ff5a00] hover:bg-[#ff7020] text-black w-full py-4 px-8 font-black uppercase text-lg tracking-widest transition-transform hover:scale-105 active:scale-95 rounded-tl-xl rounded-br-xl rounded-tr-md rounded-bl-md flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,90,0,0.4)] disabled:opacity-50"
+                >
+                  {authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isSignUp ? 'Finalize Access' : 'Authenticate')}
+                </button>
+                <div className="flex flex-col gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSignUp(!isSignUp);
+                      setError('');
+                      setSuccess('');
+                    }}
+                    className="text-[#ff5a00] text-sm font-bold hover:brightness-125 transition-all py-2 border border-[#ff5a00]/20 rounded-lg bg-[#ff5a00]/5"
+                  >
+                    {isSignUp ? 'Already registered? Switch to Login' : 'New operator? Register ID'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEmailMode(false);
+                      setError('');
+                      setSuccess('');
+                    }}
+                    className="text-gray-500 text-xs hover:text-white transition-colors"
+                  >
+                    Back to Google Login
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <button
+                  onClick={login}
+                  className="bg-[#ff5a00] hover:bg-[#ff7020] text-black w-full py-4 px-8 font-black uppercase text-lg tracking-widest transition-all hover:scale-105 active:scale-95 rounded-tl-xl rounded-br-xl rounded-tr-md rounded-bl-md flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,90,0,0.4)]"
+                >
+                  <LogIn className="w-5 h-5" />
+                  Enter System
+                </button>
+                <button
+                  onClick={() => setIsEmailMode(true)}
+                  className="text-gray-500 hover:text-white text-xs font-bold transition-colors uppercase tracking-[0.2em]"
+                >
+                  Use Internal ID (Email/Pass)
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
