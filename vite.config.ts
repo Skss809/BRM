@@ -25,12 +25,17 @@ export default defineConfig(({mode}) => {
         },
         workbox: {
           // Prevent service worker from intercepting Firebase Auth redirects
+          // This is critical for avoiding "Missing Initial State" errors
           navigateFallbackDenylist: [/^\/__\/auth/],
           runtimeCaching: [
             {
               urlPattern: /^\/__\/auth/,
               handler: 'NetworkOnly',
             },
+            {
+              urlPattern: /.*\.js/,
+              handler: 'StaleWhileRevalidate'
+            }
           ],
         },
       })

@@ -25,14 +25,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Set persistence to LOCAL immediately to handle partitioned storage better
+    // 1. Force persistence to LOCAL to survive storage-clearing on mobile redirects
     setPersistence(auth, browserLocalPersistence).catch(console.error);
 
-    // 2. Check if we just came back from a redirect (common in mobile WebViews)
-    getRedirectResult(auth).catch((error) => {
-      console.error("Redirect error catch:", error);
-      // Usually "missing initial state" happens here in partitioned environments
-    });
+    // 2. Proactively check if we returned from a redirect
+    const checkRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          console.log("Logged in via redirect successfully");
+        }
+      } catch (error: any) {
+        console.error("Redirect recovery failed:", error);
+        // This is where "missing initial state" usually manifests as an error object
+        if (error.message?.includes('initial state') || error.code === 'auth/internal-error') {
+          console.warn("Storage partitioning issue detected. Local storage might be isolated.");
+        }
+      }
+    };
+    checkRedirect();
 
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
@@ -53,29 +64,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await setPersistence(auth, browserLocalPersistence);
       
+      // In PWA APKs (TWAs), popups are actually often more reliable than redirects 
+      // if the WebView is configured to handle them, because redirects lose sessionStorage.
+      // But many users have popups blocked. 
+      // We will try Popup first for mobile, and fallback to redirect only if blocked.
       if (isStandalone || isMobile) {
-        // In mobile/standalone, we try redirect as it's more stable if configured correctly,
-        // but it's where the state issue occurs. 
-        // We'll catch errors and alert the user with tips.
-        await signInWithRedirect(auth, provider);
+        try {
+          await signInWithPopup(auth, provider);
+        } catch (popupError: any) {
+          if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/cancelled-by-user') {
+            await signInWithRedirect(auth, provider);
+          } else {
+            throw popupError;
+          }
+        }
       } else {
         await signInWithPopup(auth, provider);
       }
     } catch (error: any) {
-      console.error("Login attempt failed:", error);
+      console.error("Login process failed:", error);
       
       if (error.message?.includes('missing initial state') || error.code === 'auth/web-storage-unsupported') {
-        alert("Authentication Error: Your browser/app is blocking local storage or clearing session state. Please try opening this app in your Chrome browser directly.");
-      } else if (error.code === 'auth/popup-blocked') {
-        alert("Popup blocked! Please allow popups or try the 'Chrome' browser.");
-        // Fallback to redirect
-        try {
-          await signInWithRedirect(auth, provider);
-        } catch (reErr) {
-          console.error("Followup redirect failed", reErr);
-        }
+        alert("Authentication Error: Your app is blocking local state. Please open this app in Chrome to log in once, then return here.");
       } else {
-        alert("Login error: " + (error.message || "Unknown error"));
+        alert("Login failed: " + (error.message || "Unknown error"));
       }
     }
   };
